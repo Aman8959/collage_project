@@ -181,7 +181,7 @@
         content.innerHTML = `
           <h2>Resume Scanner</h2>
           <p>Check if your resume is job-ready.</p>
-          <a href="http://localhost:8505" class="btn">Start ATS Scan</a>
+          <a href="http://localhost:8504" class="btn">Start ATS Scan</a>
         `;
       });
 
@@ -240,12 +240,12 @@
           <button id="dsaAnalysisButton" class="btn">DSA Analysis</button>
         `;
         document.getElementById('dsaQuestionsButton').addEventListener('click', function () {
-          // Redirect to the DSA Questions app running on port 8503
-          window.location.href = 'http://localhost:8503';
+          // Redirect to the DSA app running on port 8502
+          window.location.href = 'http://localhost:8502';
         });
         document.getElementById('dsaAnalysisButton').addEventListener('click', function () {
-          // Redirect to the DSA Analysis app running on port 8504
-          window.location.href = 'http://localhost:8504';
+          // Redirect to the DSA app running on port 8502
+          window.location.href = 'http://localhost:8502';
         });
       });
     });

@@ -6,25 +6,108 @@ import base64
 import google.generativeai as genai
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
+from google.api_core.exceptions import NotFound
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure Google Generative AI with the API key from .env
-genai.configure(api_key=os.getenv('API_KEY'))
+# Gemini API key may be stored as either `GOOGLE_API_KEY` or `API_KEY`
+# depending on how the project was configured.
+API_KEY = os.getenv('GOOGLE_API_KEY') or os.getenv('API_KEY')
+
+if API_KEY:
+    # Configure Google Generative AI with the API key from env.
+    genai.configure(api_key=API_KEY)
+
+# Some Gemini accounts don’t expose the exact model id you might expect (e.g. `gemini-1.5-flash`),
+# but they do expose a different id for their plan.
+#
+# We will:
+# 1) Try `GEMINI_MODEL` (if provided) first
+# 2) Try a few common candidates
+# 3) If none work, call `genai.list_models()` and show the available ids to the user.
+GEMINI_MODEL = os.getenv('GEMINI_MODEL') or ''
+MODEL_CANDIDATES = [
+    # User override (if set)
+    GEMINI_MODEL,
+    # Common alternatives
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro-latest',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-1.0-pro',
+    'gemini-pro',
+]
+MODEL_CANDIDATES = [m for m in MODEL_CANDIDATES if m]  # remove empty strings
 
 # Define cached functions
 @st.cache_data()
 def get_gemini_response(input, pdf_content, prompt):
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content([input, pdf_content, prompt])
-    return response.text
+    @st.cache_data()
+    def list_available_models():
+        # Returns model objects with a `.name` field in google-generativeai.
+        models = genai.list_models()
+        return [getattr(m, "name", str(m)) for m in models]
+
+    last_err = None
+    for model_name in MODEL_CANDIDATES:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content([input, pdf_content, prompt])
+            return response.text
+        except NotFound as e:
+            last_err = e
+            continue
+
+    available = []
+    try:
+        available = list_available_models()
+    except Exception:
+        # If model listing fails, keep the original error.
+        available = []
+
+    tried = ", ".join(MODEL_CANDIDATES)
+    available_preview = (", ".join(available[:25]) + ("..." if len(available) > 25 else "")) if available else "unknown"
+    raise RuntimeError(
+        "No configured Gemini model id was found for your API key.\n"
+        f"Tried: {tried}\n"
+        "Available models (preview): "
+        f"{available_preview}\n"
+        "Set `GEMINI_MODEL` in `ResumeATS/.env` to one of the available ids and restart."
+    ) from last_err
 
 @st.cache_data()
 def get_gemini_response_keywords(input, pdf_content, prompt):
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content([input, pdf_content, prompt])
-    return json.loads(response.text[8:-4])
+    @st.cache_data()
+    def list_available_models():
+        models = genai.list_models()
+        return [getattr(m, "name", str(m)) for m in models]
+
+    last_err = None
+    for model_name in MODEL_CANDIDATES:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content([input, pdf_content, prompt])
+            return json.loads(response.text[8:-4])
+        except NotFound as e:
+            last_err = e
+            continue
+
+    available = []
+    try:
+        available = list_available_models()
+    except Exception:
+        available = []
+
+    tried = ", ".join(MODEL_CANDIDATES)
+    available_preview = (", ".join(available[:25]) + ("..." if len(available) > 25 else "")) if available else "unknown"
+    raise RuntimeError(
+        "No configured Gemini model id was found for your API key.\n"
+        f"Tried: {tried}\n"
+        "Available models (preview): "
+        f"{available_preview}\n"
+        "Set `GEMINI_MODEL` in `ResumeATS/.env` to one of the available ids and restart."
+    ) from last_err
 
 @st.cache_data()
 def input_pdf_setup(uploaded_file):
@@ -84,30 +167,48 @@ the job description. First the output should come as percentage and then keyword
 
 if submit1:
     if st.session_state.resume is not None:
-        pdf_content = input_pdf_setup(st.session_state.resume)
-        response = get_gemini_response(input_prompt1, pdf_content, input_text)
-        st.subheader("The Response is")
-        st.write(response)
+        if not API_KEY:
+            st.error("Missing Gemini API key. Set `GOOGLE_API_KEY` or `API_KEY` in `ResumeATS/.env` and restart this app.")
+        else:
+            try:
+                pdf_content = input_pdf_setup(st.session_state.resume)
+                response = get_gemini_response(input_prompt1, pdf_content, input_text)
+                st.subheader("The Response is")
+                st.write(response)
+            except Exception as e:
+                st.error(f"Gemini model error: {e}")
     else:
         st.write("Please upload the resume")
 
 elif submit2:
     if st.session_state.resume is not None:
-        pdf_content = input_pdf_setup(st.session_state.resume)
-        response = get_gemini_response_keywords(input_prompt2, pdf_content, input_text)
-        st.subheader("Skills are:")
-        if response is not None:
-            st.write(f"Technical Skills: {', '.join(response['Technical Skills'])}.")
-            st.write(f"Analytical Skills: {', '.join(response['Analytical Skills'])}.")
-            st.write(f"Soft Skills: {', '.join(response['Soft Skills'])}.")
+        if not API_KEY:
+            st.error("Missing Gemini API key. Set `GOOGLE_API_KEY` or `API_KEY` in `ResumeATS/.env` and restart this app.")
+        else:
+            try:
+                pdf_content = input_pdf_setup(st.session_state.resume)
+                response = get_gemini_response_keywords(input_prompt2, pdf_content, input_text)
+                st.subheader("Skills are:")
+                if response is not None:
+                    st.write(f"Technical Skills: {', '.join(response['Technical Skills'])}.")
+                    st.write(f"Analytical Skills: {', '.join(response['Analytical Skills'])}.")
+                    st.write(f"Soft Skills: {', '.join(response['Soft Skills'])}.")
+            except Exception as e:
+                st.error(f"Gemini model error: {e}")
     else:
         st.write("Please upload the resume")
 
 elif submit3:
     if st.session_state.resume is not None:
-        pdf_content = input_pdf_setup(st.session_state.resume)
-        response = get_gemini_response(input_prompt3, pdf_content, input_text)
-        st.subheader("The Response is")
-        st.write(response)
+        if not API_KEY:
+            st.error("Missing Gemini API key. Set `GOOGLE_API_KEY` or `API_KEY` in `ResumeATS/.env` and restart this app.")
+        else:
+            try:
+                pdf_content = input_pdf_setup(st.session_state.resume)
+                response = get_gemini_response(input_prompt3, pdf_content, input_text)
+                st.subheader("The Response is")
+                st.write(response)
+            except Exception as e:
+                st.error(f"Gemini model error: {e}")
     else:
         st.write("Please upload the resume")
