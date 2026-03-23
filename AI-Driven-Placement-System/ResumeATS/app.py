@@ -10,8 +10,13 @@ from PyPDF2 import PdfReader
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure Google Generative AI with the API key from .env
-genai.configure(api_key=os.getenv('API_KEY'))
+# Gemini API key may be stored as either `GOOGLE_API_KEY` or `API_KEY`
+# depending on how the project was configured.
+API_KEY = os.getenv('GOOGLE_API_KEY') or os.getenv('API_KEY')
+
+if API_KEY:
+    # Configure Google Generative AI with the API key from env.
+    genai.configure(api_key=API_KEY)
 
 # Define cached functions
 @st.cache_data()
@@ -84,30 +89,39 @@ the job description. First the output should come as percentage and then keyword
 
 if submit1:
     if st.session_state.resume is not None:
-        pdf_content = input_pdf_setup(st.session_state.resume)
-        response = get_gemini_response(input_prompt1, pdf_content, input_text)
-        st.subheader("The Response is")
-        st.write(response)
+        if not API_KEY:
+            st.error("Missing Gemini API key. Set `GOOGLE_API_KEY` or `API_KEY` in `ResumeATS/.env` and restart this app.")
+        else:
+            pdf_content = input_pdf_setup(st.session_state.resume)
+            response = get_gemini_response(input_prompt1, pdf_content, input_text)
+            st.subheader("The Response is")
+            st.write(response)
     else:
         st.write("Please upload the resume")
 
 elif submit2:
     if st.session_state.resume is not None:
-        pdf_content = input_pdf_setup(st.session_state.resume)
-        response = get_gemini_response_keywords(input_prompt2, pdf_content, input_text)
-        st.subheader("Skills are:")
-        if response is not None:
-            st.write(f"Technical Skills: {', '.join(response['Technical Skills'])}.")
-            st.write(f"Analytical Skills: {', '.join(response['Analytical Skills'])}.")
-            st.write(f"Soft Skills: {', '.join(response['Soft Skills'])}.")
+        if not API_KEY:
+            st.error("Missing Gemini API key. Set `GOOGLE_API_KEY` or `API_KEY` in `ResumeATS/.env` and restart this app.")
+        else:
+            pdf_content = input_pdf_setup(st.session_state.resume)
+            response = get_gemini_response_keywords(input_prompt2, pdf_content, input_text)
+            st.subheader("Skills are:")
+            if response is not None:
+                st.write(f"Technical Skills: {', '.join(response['Technical Skills'])}.")
+                st.write(f"Analytical Skills: {', '.join(response['Analytical Skills'])}.")
+                st.write(f"Soft Skills: {', '.join(response['Soft Skills'])}.")
     else:
         st.write("Please upload the resume")
 
 elif submit3:
     if st.session_state.resume is not None:
-        pdf_content = input_pdf_setup(st.session_state.resume)
-        response = get_gemini_response(input_prompt3, pdf_content, input_text)
-        st.subheader("The Response is")
-        st.write(response)
+        if not API_KEY:
+            st.error("Missing Gemini API key. Set `GOOGLE_API_KEY` or `API_KEY` in `ResumeATS/.env` and restart this app.")
+        else:
+            pdf_content = input_pdf_setup(st.session_state.resume)
+            response = get_gemini_response(input_prompt3, pdf_content, input_text)
+            st.subheader("The Response is")
+            st.write(response)
     else:
         st.write("Please upload the resume")
