@@ -76,23 +76,6 @@ It features advanced modules for **resume building**, **aptitude & technical tes
 - Alerts for multiple faces or user looking away  
 - Facial expression analysis during mock interviews  
 
----
-
-## 🖼️ Screenshots
-
-| Screenshot | Description                        |
-|------------|------------------------------------|
-| ![Screenshot 1](screenshots/homepage.png) | 1. Website Homepage                |
-| ![Screenshot 2](screenshots/studentdashboard.png) | 2. Student Dashboard               |
-| ![Screenshot 3](screenshots/aptitudetest.png) | 3. Aptitude Test with Face Recognition |
-| ![Screenshot 4](screenshots/aptitudeanalysis.png) | 4. Aptitude Analysis               |
-| ![Screenshot 5](screenshots/dsatest.png) | 5. Technical Coding Test           |
-| ![Screenshot 6](screenshots/mockinterview.png) | 6. Proctored Mock Interview     |
-| ![Screenshot 7](screenshots/resumebuilder.png) | 7. Resume Builder                  |
-| ![Screenshot 8](screenshots/resumescanner.png) | 8. Resume ATS Result               |
-| ![Screenshot 9](screenshots/admindashboard.png) | 9. Company / Admin Dashboard         |
-
----
 
 ## 🛠️ How to Run Locally
 
@@ -187,7 +170,5 @@ Open `index.html` in a browser.
 
 ---
 
-## 🪪 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
